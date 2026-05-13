@@ -2,7 +2,7 @@
 
 const char WEB_UI_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
@@ -103,10 +103,10 @@ input:checked+.sl:before{transform:translateX(20px);background:#fff}
 <!-- Header -->
 <div class="header">
   <h1>TeslaCAN</h1>
-  <div class="sub">ESP32-C6 CAN Bus Controller</div>
+  <div class="sub">ESP32-C6 CAN Veri Yolu Kontrolcüsü</div>
   <div class="conn" id="connDot"></div>
 </div>
-<div id="connErr" class="err">Connection lost. Retrying...</div>
+<div id="connErr" class="err">Bağlantı koptu. Yeniden deneniyor...</div>
 
 <!-- Battery Hero -->
 <div class="hero">
@@ -117,57 +117,67 @@ input:checked+.sl:before{transform:translateX(20px);background:#fff}
     </svg>
     <div class="soc-val">
       <span class="soc-num" id="bsoc">--</span>
-      <span class="soc-lbl">BATTERY</span>
+      <span class="soc-lbl">BATARYA</span>
     </div>
   </div>
   <div class="hero-grid">
-    <div><div class="hv" id="bpow">--</div><div class="hl">Power</div></div>
-    <div><div class="hv" id="bvolt">--</div><div class="hl">Voltage</div></div>
-    <div><div class="hv" id="btemp">--</div><div class="hl">Temp</div></div>
-    <div><div class="hv" id="bcurr">--</div><div class="hl">Current</div></div>
+    <div><div class="hv" id="bpow">--</div><div class="hl">Güç</div></div>
+    <div><div class="hv" id="bvolt">--</div><div class="hl">Gerilim</div></div>
+    <div><div class="hv" id="btemp">--</div><div class="hl">Sıcaklık</div></div>
+    <div><div class="hv" id="bcurr">--</div><div class="hl">Akım</div></div>
     <div><div class="hv" id="bwhkm">--</div><div class="hl">Wh/km</div></div>
-    <div><div class="hv" id="precst">--</div><div class="hl">Precond</div></div>
+    <div><div class="hv" id="precst">--</div><div class="hl">Ön Koşul.</div></div>
   </div>
 </div>
 
 <!-- FSD Status -->
 <div class="card">
-  <div class="card-head"><div class="icon ic-fsd">F</div><h2>Driving</h2></div>
+  <div class="card-head"><div class="icon ic-fsd">F</div><h2>Sürüş</h2></div>
   <div class="row"><span class="label">FSD</span><span class="val" id="fsd">--</span></div>
-  <div class="row"><span class="label">Force FSD</span><span class="val" id="ffsd">--</span></div>
-  <div class="row"><span class="label">Speed Profile</span><span class="val" id="prof">--</span></div>
-  <div class="row"><span class="label">Speed Offset</span><span class="val" id="soff">--</span></div>
-  <div class="row"><span class="label">Uptime</span><span class="val" id="up">--</span></div>
+  <div class="row"><span class="label">FSD Zorla</span><span class="val" id="ffsd">--</span></div>
+  <div class="row"><span class="label">Hız Profili</span><span class="val" id="prof">--</span></div>
+  <div class="row"><span class="label">Hız Ofseti</span><span class="val" id="soff">--</span></div>
+  <div class="row"><span class="label">Çalışma Süresi</span><span class="val" id="up">--</span></div>
 </div>
 
 <!-- CAN Bus -->
 <div class="card">
-  <div class="card-head"><div class="icon ic-can">C</div><h2>CAN Bus</h2></div>
-  <div class="row"><span class="label">State</span><span class="val" id="canst">--</span></div>
+  <div class="card-head"><div class="icon ic-can">C</div><h2>CAN Veri Yolu</h2></div>
+  <div class="row"><span class="label">Durum</span><span class="val" id="canst">--</span></div>
   <div class="stat-grid">
-    <div class="stat-box"><div class="sv" id="canfr">0</div><div class="sl2">RX Frames</div></div>
-    <div class="stat-box"><div class="sv" id="canfs">0</div><div class="sl2">TX Frames</div></div>
-    <div class="stat-box"><div class="sv" id="canrx">0</div><div class="sl2">RX Errors</div></div>
-    <div class="stat-box"><div class="sv" id="cantx">0</div><div class="sl2">TX Errors</div></div>
-    <div class="stat-box"><div class="sv" id="canbe">0</div><div class="sl2">Bus Errors</div></div>
-    <div class="stat-box"><div class="sv" id="canrm">0</div><div class="sl2">RX Missed</div></div>
+    <div class="stat-box"><div class="sv" id="canfr">0</div><div class="sl2">Alınan Çerçeve</div></div>
+    <div class="stat-box"><div class="sv" id="canfs">0</div><div class="sl2">Gönderilen Çerçeve</div></div>
+    <div class="stat-box"><div class="sv" id="canrx">0</div><div class="sl2">RX Hatası</div></div>
+    <div class="stat-box"><div class="sv" id="cantx">0</div><div class="sl2">TX Hatası</div></div>
+    <div class="stat-box"><div class="sv" id="canbe">0</div><div class="sl2">Bus Hatası</div></div>
+    <div class="stat-box"><div class="sv" id="canrm">0</div><div class="sl2">Kaçan Çerçeve</div></div>
   </div>
 </div>
 
 <!-- Controls -->
 <div class="card">
-  <div class="card-head"><div class="icon ic-ctrl">S</div><h2>Controls</h2></div>
-  <div class="row"><span class="label">Force FSD</span>
+  <div class="card-head"><div class="icon ic-ctrl">S</div><h2>Kontroller</h2></div>
+  <div class="row"><span class="label">FSD Zorla</span>
     <label class="sw"><input type="checkbox" id="tFsd" onchange="togFsd(this)"><span class="sl"></span></label></div>
-  <div class="row"><span class="label">Precondition Battery</span>
+  <div class="row"><span class="label">Batarya Ön Koşullandırma</span>
     <label class="sw"><input type="checkbox" id="tPrec" onchange="togPrec(this)"><span class="sl"></span></label></div>
-  <div class="row"><span class="label">Enable Logging</span>
+  <div class="row"><span class="label">Kayıt Tutma</span>
     <label class="sw"><input type="checkbox" id="tLog" checked onchange="togLog(this)"><span class="sl"></span></label></div>
+  <div class="row"><span class="label">Acil Durum Algılama (bit 59)</span>
+    <label class="sw"><input type="checkbox" id="tEm" onchange="togEm(this)"><span class="sl"></span></label></div>
+  <div class="row"><span class="label">ISA Hız Limiti Bypass</span>
+    <label class="sw"><input type="checkbox" id="tIsaOvr" onchange="togIsaOvr(this)"><span class="sl"></span></label></div>
+  <div class="row"><span class="label">ISA Uyarı Sesi Susturma</span>
+    <label class="sw"><input type="checkbox" id="tIsaSup" onchange="togIsaSup(this)"><span class="sl"></span></label></div>
+  <div class="row"><span class="label">ISA Hız Çarpanı</span>
+    <input type="range" id="tIsaMul" min="0" max="7" step="1" oninput="document.getElementById('tIsaMulV').textContent=this.value" onchange="setIsaMul(this)" style="width:140px">
+    <span class="val" id="tIsaMulV">7</span></div>
+  <div class="row"><span class="label">BMS Isıtmaya İzin Veriyor</span><span class="val" id="pAllow">--</span></div>
 </div>
 
 <!-- Log -->
 <div class="card">
-  <div class="card-head"><div class="icon ic-log">L</div><h2>Event Log</h2></div>
+  <div class="card-head"><div class="icon ic-log">L</div><h2>Olay Kaydı</h2></div>
   <div id="log"></div>
 </div>
 
@@ -176,7 +186,7 @@ input:checked+.sl:before{transform:translateX(20px);background:#fff}
 </div>
 <script>
 var logSince=0,errCount=0;
-var profNames=['Chill','Normal','Sport','P3','P4'];
+var profNames=['Sakin','Normal','Spor','P3','P4'];
 var CIRC=326.73;
 
 function fmt(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return h+':'+(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}
@@ -198,8 +208,8 @@ async function poll(){
     var d=await r.json();
 
     // FSD
-    setPill(document.getElementById('fsd'),d.fsd_enabled,d.fsd_enabled?'Active':'Off');
-    setPill(document.getElementById('ffsd'),d.force_fsd,d.force_fsd?'Forced':'Off');
+    setPill(document.getElementById('fsd'),d.fsd_enabled,d.fsd_enabled?'Aktif':'Kapalı');
+    setPill(document.getElementById('ffsd'),d.force_fsd,d.force_fsd?'Zorlanıyor':'Kapalı');
     document.getElementById('prof').textContent=profNames[d.speed_profile]||('P'+d.speed_profile);
     document.getElementById('soff').textContent=(d.speed_offset>0?'+':'')+d.speed_offset+' km/h';
     document.getElementById('up').textContent=fmt(d.uptime_s);
@@ -243,9 +253,21 @@ async function poll(){
       document.getElementById('bwhkm').textContent=d.bat.wh_per_km>0?d.bat.wh_per_km.toFixed(0):'--';
 
       var pr=document.getElementById('precst');
-      if(d.bat.precond){pr.textContent='Heating';pr.style.color='var(--yellow)';}
-      else{pr.textContent='Off';pr.style.color='var(--text3)';}
+      if(d.bat.precond){pr.textContent='Isıtılıyor';pr.style.color='var(--yellow)';}
+      else{pr.textContent='Kapalı';pr.style.color='var(--text3)';}
       document.getElementById('tPrec').checked=d.bat.precond_req;
+      var pa=document.getElementById('pAllow');
+      if(d.bat.precond_allowed){pa.textContent='Evet';pa.style.color='var(--accent)';}
+      else{pa.textContent='Hayır';pa.style.color='var(--text3)';}
+    }
+
+    // Toggles sync
+    document.getElementById('tEm').checked=!!d.em_detect;
+    document.getElementById('tIsaOvr').checked=!!d.isa_ovr;
+    document.getElementById('tIsaSup').checked=!!d.isa_sup;
+    if(typeof d.isa_mul!=='undefined'){
+      document.getElementById('tIsaMul').value=d.isa_mul;
+      document.getElementById('tIsaMulV').textContent=d.isa_mul;
     }
 
     // Logs
@@ -275,7 +297,7 @@ async function poll(){
 }
 
 async function togFsd(el){
-  if(el.checked&&!confirm('Enable Force FSD?\nThis modifies safety-critical CAN messages.')){el.checked=false;return;}
+  if(el.checked&&!confirm('FSD Zorla etkinleştirilsin mi?\nBu, güvenlik açısından kritik CAN mesajlarını değiştirir.')){el.checked=false;return;}
   try{await fetch('/api/force-fsd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:el.checked})});}
   catch(e){el.checked=!el.checked;}
 }
@@ -287,6 +309,11 @@ async function togLog(el){
   try{await fetch('/api/enable-print',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:el.checked})});}
   catch(e){el.checked=!el.checked;}
 }
+
+async function togEm(el){try{await fetch('/api/em-detect',{method:'POST',body:JSON.stringify({enabled:el.checked})});}catch(e){el.checked=!el.checked;}}
+async function togIsaOvr(el){try{await fetch('/api/isa-override',{method:'POST',body:JSON.stringify({enabled:el.checked})});}catch(e){el.checked=!el.checked;}}
+async function togIsaSup(el){try{await fetch('/api/isa-suppress',{method:'POST',body:JSON.stringify({enabled:el.checked})});}catch(e){el.checked=!el.checked;}}
+async function setIsaMul(el){try{await fetch('/api/isa-mul',{method:'POST',body:String(el.value)});}catch(e){}}
 
 setInterval(poll,500);poll();
 </script>

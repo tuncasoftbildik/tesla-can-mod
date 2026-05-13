@@ -74,9 +74,12 @@ public:
         snprintf(buf, sizeof(buf), "RX:%lu %02d:%02d", (unsigned long)rx, (int)(up / 3600), (int)((up % 3600) / 60));
         drawStatusRow(235, "Stats", buf, GRAY);
 
-        // Precondition status
+        // Precondition status (active / BMS allowed)
         bool prec = handler ? handler->precondActive : false;
-        drawStatusRow(265, "Precond", prec ? "HEATING" : "OFF", prec ? YELLOW : GRAY);
+        bool allow = handler ? handler->precondAllowed : false;
+        const char *ps = prec ? "HEATING" : (allow ? "ALLOWED" : "OFF");
+        uint16_t pc = prec ? YELLOW : (allow ? GREEN : GRAY);
+        drawStatusRow(265, "Precond", ps, pc);
     }
 
     void showMessage(const char *msg, uint16_t color = 0xFFFF)

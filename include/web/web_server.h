@@ -23,6 +23,19 @@ static void webServerInit()
     bool savedForce = prefs.getBool("forceFSD", false);
     forceFSDRuntime = savedForce;
 
+    // Load persisted toggles (applied to webHandler once assigned)
+    bool savedEmDet = prefs.getBool("emDet", true);
+    bool savedIsaOvr = prefs.getBool("isaOvr", true);
+    bool savedIsaSup = prefs.getBool("isaSup", false);
+    uint8_t savedIsaMul = prefs.getUChar("isaMul", 7);
+    if (webHandler)
+    {
+        webHandler->emergencyDetect = savedEmDet;
+        webHandler->isaSpeedOverride = savedIsaOvr;
+        webHandler->isaSuppress = savedIsaSup;
+        webHandler->isaSpeedMul = savedIsaMul;
+    }
+
     WiFi.mode(WIFI_AP);
     WiFi.softAP("TeslaCAN", "tesla1234");
     delay(100);
@@ -61,8 +74,14 @@ static void webServerInit()
         float bwhkm = webHandler ? webHandler->whPerKm : 0;
         bool precond = webHandler ? webHandler->precondActive : false;
         bool precondReq = webHandler ? webHandler->precondRequested : false;
+        bool precondAllow = webHandler ? webHandler->precondAllowed : false;
+        bool precondWorth = webHandler ? webHandler->precondWorthwhile : false;
+        bool emDet = webHandler ? webHandler->emergencyDetect : true;
+        bool isaOvr = webHandler ? webHandler->isaSpeedOverride : true;
+        bool isaSup = webHandler ? webHandler->isaSuppress : false;
+        int isaMul = webHandler ? webHandler->isaSpeedMul : 7;
 
-        char json[768];
+        char json[1024];
         snprintf(json, sizeof(json),
             "{\"fsd_enabled\":%s,\"force_fsd\":%s,\"speed_profile\":%d,"
             "\"speed_offset\":%d,\"uptime_s\":%lu,\"enable_print\":%s,"
@@ -70,7 +89,9 @@ static void webServerInit()
             "\"rx_errors\":%lu,\"tx_errors\":%lu,\"bus_errors\":%lu,\"rx_missed\":%lu},"
             "\"bat\":{\"voltage\":%.1f,\"current\":%.1f,\"power_kw\":%.2f,"
             "\"soc\":%.1f,\"temp_min\":%.1f,\"temp_max\":%.1f,"
-            "\"wh_per_km\":%.0f,\"precond\":%s,\"precond_req\":%s},"
+            "\"wh_per_km\":%.0f,\"precond\":%s,\"precond_req\":%s,"
+            "\"precond_allowed\":%s,\"precond_worth\":%s},"
+            "\"em_detect\":%s,\"isa_ovr\":%s,\"isa_sup\":%s,\"isa_mul\":%d,"
             "\"log_head\":%d,\"logs\":[",
             fsd ? "true" : "false",
             (bool)forceFSDRuntime ? "true" : "false",
@@ -84,6 +105,12 @@ static void webServerInit()
             bvolt, bcurr, bpow, bsoc, btmin, btmax, bwhkm,
             precond ? "true" : "false",
             precondReq ? "true" : "false",
+            precondAllow ? "true" : "false",
+            precondWorth ? "true" : "false",
+            emDet ? "true" : "false",
+            isaOvr ? "true" : "false",
+            isaSup ? "true" : "false",
+            isaMul,
             globalLog.head());
 
         String response = json;
@@ -133,6 +160,54 @@ static void webServerInit()
             if (!enable)
                 webHandler->precondActive = false;
             globalLog.add(enable ? "Precondition: ON" : "Precondition: OFF");
+        }
+        server.send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    server.on("/api/em-detect", HTTP_POST, []() {
+        if (server.hasArg("plain") && webHandler)
+        {
+            bool enable = server.arg("plain").indexOf("true") >= 0;
+            webHandler->emergencyDetect = enable;
+            prefs.putBool("emDet", enable);
+            globalLog.add(enable ? "EmergencyDetect: ON" : "EmergencyDetect: OFF");
+        }
+        server.send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    server.on("/api/isa-override", HTTP_POST, []() {
+        if (server.hasArg("plain") && webHandler)
+        {
+            bool enable = server.arg("plain").indexOf("true") >= 0;
+            webHandler->isaSpeedOverride = enable;
+            prefs.putBool("isaOvr", enable);
+            globalLog.add(enable ? "ISA Override: ON" : "ISA Override: OFF");
+        }
+        server.send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    server.on("/api/isa-suppress", HTTP_POST, []() {
+        if (server.hasArg("plain") && webHandler)
+        {
+            bool enable = server.arg("plain").indexOf("true") >= 0;
+            webHandler->isaSuppress = enable;
+            prefs.putBool("isaSup", enable);
+            globalLog.add(enable ? "ISA Suppress: ON" : "ISA Suppress: OFF");
+        }
+        server.send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    server.on("/api/isa-mul", HTTP_POST, []() {
+        if (server.hasArg("plain") && webHandler)
+        {
+            int v = server.arg("plain").toInt();
+            if (v < 0) v = 0;
+            if (v > 7) v = 7;
+            webHandler->isaSpeedMul = (uint8_t)v;
+            prefs.putUChar("isaMul", (uint8_t)v);
+            char msg[32];
+            snprintf(msg, sizeof(msg), "ISA Mul: %d", v);
+            globalLog.add(msg);
         }
         server.send(200, "application/json", "{\"status\":\"ok\"}");
     });
