@@ -1,0 +1,6 @@
+.ufbt/
+dist/
+build/
+*.fap
+*.elf
+*.o

@@ -1,0 +1,15 @@
+App(
+    appid="teslacan",
+    name="TeslaCAN",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="teslacan_app_main",
+    requires=["gui"],
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_author="tuncasoftbildik",
+    fap_version="0.2.0",
+    fap_description="Flipper Zero companion for the TeslaCAN ESP32-C6 firmware. Live Tesla telemetry and remote control over UART.",
+    fap_weburl="https://github.com/tuncasoftbildik/tesla-can-mod",
+    fap_icon="tesla_10x10.png",
+    sources=["*.c"],
+)

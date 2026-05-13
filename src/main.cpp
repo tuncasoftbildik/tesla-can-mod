@@ -15,6 +15,9 @@
 // ─── Web Server ───
 #include "web/web_server.h"
 
+// ─── Flipper Zero UART Bridge ───
+#include "uart_bridge.h"
+
 // ─── Pin Configuration (Waveshare ESP32-C6-LCD-1.47) ───
 #ifndef TWAI_TX_PIN
 #define TWAI_TX_PIN 0
@@ -30,6 +33,9 @@
 static std::unique_ptr<TWAIDriver> canDriver;
 static std::unique_ptr<HW4Handler> handler;
 static LCDDisplay lcd;
+
+// Flipper Zero UART bridge (definition matches `extern` in uart_bridge.h)
+UartBridge uartBridge;
 
 void setup()
 {
@@ -76,6 +82,11 @@ void setup()
     lcd.showMessage("WiFi: TeslaCAN", 0x07FF); // Cyan
     globalLog.add("System ready");
 
+#ifdef FLIPPER_UART_ENABLE
+    uartBridge.begin(handler.get(), canDriver.get());
+    globalLog.add("Flipper UART ready");
+#endif
+
     Serial.println("Setup complete. Connect to WiFi: TeslaCAN");
     Serial.println("Dashboard: http://192.168.4.1");
 }
@@ -97,4 +108,8 @@ void loop()
 
     // Handle web requests
     webServerLoop();
+
+#ifdef FLIPPER_UART_ENABLE
+    uartBridge.loop();
+#endif
 }
