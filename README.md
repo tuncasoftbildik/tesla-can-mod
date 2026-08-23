@@ -6,7 +6,7 @@
 
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32--C6-orange?logo=platformio&style=flat-square)](https://platformio.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![GitHub stars](https://img.shields.io/github/stars/tuncasoftbildik/tesla-can-mod?style=flat-square&logo=github)](https://github.com/tuncasoftbildik/tesla-can-mod/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/tuncasoftbildik/tesla-can-mod?style=flat-square&logo=github)](https://github.com/tuncasoftbildik/tesla-can-mod/commits/main)
 [![Issues](https://img.shields.io/github/issues/tuncasoftbildik/tesla-can-mod?style=flat-square&logo=github)](https://github.com/tuncasoftbildik/tesla-can-mod/issues)
@@ -33,6 +33,8 @@ diagnostic port and gives you:
 - **Battery telemetry**: real-time SoC, voltage, current, power, pack
   temperature, Wh/km
 - **Battery preconditioning trigger** — heat the pack before plug-in
+- **Motor telemetry + 0–100 km/h timer** — live front/rear drive-inverter
+  torque, vehicle speed, and a passive launch stopwatch (last + session best)
 - **A built-in 1.47″ color LCD** that always shows live status without a
   phone
 - **A WiFi access point + web dashboard** at `http://192.168.4.1`
@@ -244,8 +246,8 @@ tesla-can-mod/
 
 - [ ] OTA firmware update over WiFi
 - [ ] SD-card CAN bus logger
-- [ ] Motor torque/power live view (`0x108`, `0x1D8`)
-- [ ] 0–100 km/h performance timer
+- [x] Motor torque live view (`0x108`, `0x1D8`) — *v0.3.0, DBC scaling unverified on-vehicle*
+- [x] 0–100 km/h performance timer — *v0.3.0*
 - [ ] Chassis CAN support via second transceiver — steering-mode toggle
 - [ ] Model S / X (Palladium) handler
 - [ ] Grafana / Prometheus exporter from the WiFi side

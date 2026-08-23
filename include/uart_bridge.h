@@ -26,6 +26,7 @@
 //   EVT BATTERY soc=<%.1f> v=<%.2f> i=<%.2f> kw=<%.2f> tmin=<%d> tmax=<%d> wh=<%.1f>
 //   EVT CAN state=<run|stop|err> rx=<n> sent=<n>
 //   EVT PRECOND active=<0|1> allowed=<0|1> worth=<0|1>
+//   EVT PERF spd=<%.0f> front=<%.0f> rear=<%.0f> nm=<%.0f> a100=<ms> best=<ms>
 //   EVT LOG <free-form message>
 //
 // Commands (Flipper → ESP32):
@@ -56,7 +57,7 @@
 #define FLIPPER_UART_BAUD 115200
 #endif
 #ifndef FLIPPER_FW_VERSION
-#define FLIPPER_FW_VERSION "0.2.0"
+#define FLIPPER_FW_VERSION "0.3.0"
 #endif
 
 class UartBridge
@@ -105,6 +106,7 @@ public:
                 emitBattery();
                 emitCanStats();
                 emitPrecond();
+                emitPerf();
             }
         }
 
@@ -170,6 +172,7 @@ private:
             ack("STATUS");
             emitStatus();
             emitBattery();
+            emitPerf();
         }
         else if (!strcasecmp(verb, "FSD"))
         {
@@ -279,6 +282,18 @@ private:
                      handler_->precondActive ? 1 : 0,
                      handler_->precondAllowed ? 1 : 0,
                      handler_->precondWorthwhile ? 1 : 0);
+    }
+
+    void emitPerf()
+    {
+        if (!handler_) return;
+        port_.printf("EVT PERF spd=%.0f front=%.0f rear=%.0f nm=%.0f a100=%lu best=%lu\n",
+                     handler_->vehicleSpeedKph,
+                     handler_->frontTorqueNm,
+                     handler_->rearTorqueNm,
+                     handler_->frontTorqueNm + handler_->rearTorqueNm,
+                     (unsigned long)handler_->accel0to100Ms,
+                     (unsigned long)handler_->accel0to100BestMs);
     }
 };
 

@@ -4,6 +4,36 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.3.0] — 2026-08-23
+
+### Added
+- **Motor telemetry** — live front/rear drive-inverter torque (Nm) and
+  vehicle speed (km/h), read passively from `0x108` (DIR_torque),
+  `0x1D8` (DIF_torque) and `0x257` (DI_speed). No frames are sent; this
+  is read-only.
+- **0–100 km/h stopwatch** — a passive launch timer in `CarManagerBase`
+  that arms at standstill, starts on roll-off and latches the elapsed
+  time when 100 km/h is crossed, tracking both the last run and the best
+  of the session.
+- New **Performance card** on the web dashboard (speed, total/front/rear
+  torque, last + best 0–100) and a live speed/torque/0–100 bar on the
+  LCD bottom strip.
+- New `EVT PERF spd=… front=… rear=… nm=… a100=… best=…` line on the
+  Flipper UART bridge, emitted in the periodic stream and in the
+  `CMD STATUS` snapshot.
+
+### Changed
+- HW4 and HW3 handlers now accept three additional CAN IDs
+  (`0x108` / `0x1D8` / `0x257`) in their acceptance filters.
+- `FLIPPER_FW_VERSION` default bumped to `0.3.0`.
+
+### Notes
+- Torque scaling (13-bit signed @ bit 27, ×0.222 Nm) is derived from the
+  community `opendbc` Model 3 DBC and has **not** yet been bench-verified
+  on a vehicle — treat the Nm figures as indicative until confirmed.
+  `DI_vehicleSpeed` (the value the 0–100 timer depends on) uses the
+  well-established 12-bit @ bit 12, ×0.08, −40 km/h mapping.
+
 ## [0.2.0] — 2026-05-13
 
 ### Added

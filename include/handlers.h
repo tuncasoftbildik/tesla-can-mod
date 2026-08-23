@@ -38,6 +38,88 @@ public:
     bool precondRequested = false;
     bool precondAllowed = false;       // BMS_preconditionAllowed (0x212 bit 3)
     bool precondWorthwhile = false;    // BMS_activeHeatingWorthwhile (0x212 bit 5)
+
+    // ─── Motor / performance telemetry (read-only, passive) ───
+    float frontTorqueNm = 0;           // DIF_torqueActual (AWD front inverter)
+    float rearTorqueNm  = 0;           // DIR_torqueActual (rear inverter)
+    float vehicleSpeedKph = 0;         // DI_vehicleSpeed
+    uint32_t accel0to100Ms = 0;        // last measured 0-100 km/h time (ms), 0 = none
+    uint32_t accel0to100BestMs = 0;    // best 0-100 this session (ms), 0 = none
+
+    // Common powertrain CAN IDs (Model 3 / Y, HW3 + HW4).
+    static constexpr uint32_t CAN_DIR_TORQUE = 0x108; // 264 - rear drive inverter
+    static constexpr uint32_t CAN_DIF_TORQUE = 0x1D8; // 472 - front drive inverter (AWD)
+    static constexpr uint32_t CAN_DI_SPEED   = 0x257; // 599 - DI vehicle speed
+
+    void parseDriveTorque(const CanFrame &frame, bool front)
+    {
+        // opendbc tesla_model3.dbc: DIR_torqueActual / DIF_torqueActual —
+        //   13-bit signed @ bit 27, factor 0.222 Nm.
+        // NOTE: DBC-derived scaling; not yet bench-verified on a vehicle.
+        uint32_t raw = (uint32_t)frame.data[3]
+                     | ((uint32_t)frame.data[4] << 8)
+                     | ((uint32_t)frame.data[5] << 16);
+        uint16_t t = (raw >> 3) & 0x1FFF;                       // bits 27..39
+        int16_t st = (t & 0x1000) ? (int16_t)(t - 0x2000) : (int16_t)t;
+        float nm = st * 0.222f;
+        if (front) frontTorqueNm = nm;
+        else       rearTorqueNm  = nm;
+    }
+
+    void parseVehicleSpeed(const CanFrame &frame)
+    {
+        // opendbc tesla_model3.dbc: DI_vehicleSpeed —
+        //   12-bit @ bit 12, factor 0.08, offset -40, km/h.
+        uint32_t raw = (uint32_t)frame.data[1] | ((uint32_t)frame.data[2] << 8);
+        uint16_t v = (raw >> 4) & 0x0FFF;                       // bits 12..23
+        float kph = v * 0.08f - 40.0f;
+        if (kph < 0) kph = 0;
+        vehicleSpeedKph = kph;
+        updateAccelTimer();
+    }
+
+    // Passive 0-100 km/h stopwatch. Arms once the car is at a standstill,
+    // starts on first roll-off, and latches the elapsed time when 100 km/h
+    // is crossed. Aborts (silently) if the car stops before reaching 100.
+    void updateAccelTimer()
+    {
+        unsigned long now = millis();
+        float v = vehicleSpeedKph;
+        if (accelState_ == 0)
+        {
+            if (v <= ACCEL_ARM_KPH) accelArmed_ = true;
+            if (accelArmed_ && v > ACCEL_START_KPH)
+            {
+                accelStart_ = now;
+                accelState_ = 1;
+                accelArmed_ = false;
+            }
+        }
+        else
+        {
+            if (v >= ACCEL_TARGET_KPH)
+            {
+                uint32_t elapsed = (uint32_t)(now - accelStart_);
+                accel0to100Ms = elapsed;
+                if (accel0to100BestMs == 0 || elapsed < accel0to100BestMs)
+                    accel0to100BestMs = elapsed;
+                accelState_ = 0;
+            }
+            else if (v <= ACCEL_ARM_KPH)
+            {
+                accelState_ = 0;
+                accelArmed_ = true;
+            }
+        }
+    }
+
+protected:
+    static constexpr float ACCEL_ARM_KPH    = 1.0f;   // standstill threshold
+    static constexpr float ACCEL_START_KPH  = 2.0f;   // roll-off starts the clock
+    static constexpr float ACCEL_TARGET_KPH = 100.0f; // finish line
+    uint8_t accelState_ = 0;        // 0 = idle, 1 = timing
+    bool accelArmed_ = true;
+    unsigned long accelStart_ = 0;
 };
 
 // ─── HW4 Handler (Tesla Juniper) ───
@@ -79,6 +161,9 @@ public:
         case CAN_BMS_STATUS:    parseBmsStatus(frame); break;
         case CAN_BMS_THERMAL:   parseBmsTemp(frame); break;
         case CAN_UI_ENERGY:     parseEnergy(frame); break;
+        case CAN_DIR_TORQUE:    parseDriveTorque(frame, false); break;
+        case CAN_DIF_TORQUE:    parseDriveTorque(frame, true);  break;
+        case CAN_DI_SPEED:      parseVehicleSpeed(frame); break;
         default: break;
         }
 
@@ -98,13 +183,14 @@ public:
     }
 
     const uint32_t *filterIds() const override { return filterIds_; }
-    uint8_t filterIdCount() const override { return 9; }
+    uint8_t filterIdCount() const override { return 12; }
 
 private:
     static constexpr uint32_t filterIds_[] = {
         CAN_AP_FOLLOW_DIST, CAN_AP_CONTROL, CAN_ISA_CHIME,
         CAN_BMS_HV_BUS, CAN_BMS_SOC, CAN_BMS_STATUS, CAN_BMS_THERMAL,
-        CAN_UI_ENERGY, CAN_TRIP_PLANNING
+        CAN_UI_ENERGY, CAN_TRIP_PLANNING,
+        CAN_DIR_TORQUE, CAN_DIF_TORQUE, CAN_DI_SPEED
     };
     unsigned long lastPrecondSend_ = 0;
 
@@ -329,13 +415,19 @@ public:
                 sentCount++;
             }
         }
+        else if (frame.id == CAN_DIR_TORQUE) parseDriveTorque(frame, false);
+        else if (frame.id == CAN_DIF_TORQUE) parseDriveTorque(frame, true);
+        else if (frame.id == CAN_DI_SPEED)   parseVehicleSpeed(frame);
     }
 
     const uint32_t *filterIds() const override { return filterIds_; }
-    uint8_t filterIdCount() const override { return 3; }
+    uint8_t filterIdCount() const override { return 6; }
 
 private:
-    static constexpr uint32_t filterIds_[] = {CAN_AP_FOLLOW_DIST, CAN_AP_CONTROL, CAN_ISA_CHIME};
+    static constexpr uint32_t filterIds_[] = {
+        CAN_AP_FOLLOW_DIST, CAN_AP_CONTROL, CAN_ISA_CHIME,
+        CAN_DIR_TORQUE, CAN_DIF_TORQUE, CAN_DI_SPEED
+    };
 };
 
 // ─── Legacy Handler ───

@@ -81,7 +81,13 @@ static void webServerInit()
         bool isaSup = webHandler ? webHandler->isaSuppress : false;
         int isaMul = webHandler ? webHandler->isaSpeedMul : 7;
 
-        char json[1024];
+        float pFront = webHandler ? webHandler->frontTorqueNm : 0;
+        float pRear  = webHandler ? webHandler->rearTorqueNm : 0;
+        float pSpeed = webHandler ? webHandler->vehicleSpeedKph : 0;
+        uint32_t pLast = webHandler ? webHandler->accel0to100Ms : 0;
+        uint32_t pBest = webHandler ? webHandler->accel0to100BestMs : 0;
+
+        char json[1280];
         snprintf(json, sizeof(json),
             "{\"fsd_enabled\":%s,\"force_fsd\":%s,\"speed_profile\":%d,"
             "\"speed_offset\":%d,\"uptime_s\":%lu,\"enable_print\":%s,"
@@ -92,6 +98,8 @@ static void webServerInit()
             "\"wh_per_km\":%.0f,\"precond\":%s,\"precond_req\":%s,"
             "\"precond_allowed\":%s,\"precond_worth\":%s},"
             "\"em_detect\":%s,\"isa_ovr\":%s,\"isa_sup\":%s,\"isa_mul\":%d,"
+            "\"perf\":{\"front_nm\":%.0f,\"rear_nm\":%.0f,\"total_nm\":%.0f,"
+            "\"speed_kph\":%.0f,\"accel_last_ms\":%lu,\"accel_best_ms\":%lu},"
             "\"log_head\":%d,\"logs\":[",
             fsd ? "true" : "false",
             (bool)forceFSDRuntime ? "true" : "false",
@@ -111,6 +119,8 @@ static void webServerInit()
             isaOvr ? "true" : "false",
             isaSup ? "true" : "false",
             isaMul,
+            pFront, pRear, pFront + pRear, pSpeed,
+            (unsigned long)pLast, (unsigned long)pBest,
             globalLog.head());
 
         String response = json;

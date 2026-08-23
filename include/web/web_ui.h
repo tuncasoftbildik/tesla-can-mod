@@ -47,6 +47,7 @@ body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg)
 .ic-fsd{background:rgba(0,212,170,.15);color:var(--accent)}
 .ic-can{background:rgba(77,171,247,.15);color:var(--blue)}
 .ic-ctrl{background:rgba(255,217,61,.15);color:var(--yellow)}
+.ic-perf{background:rgba(255,107,107,.15);color:var(--red)}
 .ic-log{background:rgba(148,163,184,.15);color:var(--text2)}
 
 .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
@@ -154,6 +155,19 @@ input:checked+.sl:before{transform:translateX(20px);background:#fff}
   </div>
 </div>
 
+<!-- Performance -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-perf">P</div><h2>Performans</h2></div>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="sv" id="pSpeed">--</div><div class="sl2">Hız (km/h)</div></div>
+    <div class="stat-box"><div class="sv" id="pTorq">--</div><div class="sl2">Tork (Nm)</div></div>
+    <div class="stat-box"><div class="sv" id="pFront">--</div><div class="sl2">Ön Motor (Nm)</div></div>
+    <div class="stat-box"><div class="sv" id="pRear">--</div><div class="sl2">Arka Motor (Nm)</div></div>
+  </div>
+  <div class="row"><span class="label">0-100 km/h (son)</span><span class="val" id="pLast">--</span></div>
+  <div class="row"><span class="label">0-100 km/h (en iyi)</span><span class="val" id="pBest">--</span></div>
+</div>
+
 <!-- Controls -->
 <div class="card">
   <div class="card-head"><div class="icon ic-ctrl">S</div><h2>Kontroller</h2></div>
@@ -181,7 +195,7 @@ input:checked+.sl:before{transform:translateX(20px);background:#fff}
   <div id="log"></div>
 </div>
 
-<div class="foot">TeslaCAN v1.0 &middot; <a href="https://github.com/tuncasoftbildik/tesla-can-mod" target="_blank">GitHub</a></div>
+<div class="foot">TeslaCAN v0.3.0 &middot; <a href="https://github.com/tuncasoftbildik/tesla-can-mod" target="_blank">GitHub</a></div>
 
 </div>
 <script>
@@ -228,6 +242,18 @@ async function poll(){
       document.getElementById('cantx').textContent=d.can.tx_errors;
       document.getElementById('canbe').textContent=d.can.bus_errors;
       document.getElementById('canrm').textContent=d.can.rx_missed;
+    }
+
+    // Performance
+    if(d.perf){
+      document.getElementById('pSpeed').textContent=d.perf.speed_kph;
+      document.getElementById('pTorq').textContent=d.perf.total_nm;
+      document.getElementById('pFront').textContent=d.perf.front_nm;
+      document.getElementById('pRear').textContent=d.perf.rear_nm;
+      document.getElementById('pLast').textContent=d.perf.accel_last_ms>0?(d.perf.accel_last_ms/1000).toFixed(2)+' s':'--';
+      var pb=document.getElementById('pBest');
+      pb.textContent=d.perf.accel_best_ms>0?(d.perf.accel_best_ms/1000).toFixed(2)+' s':'--';
+      pb.style.color=d.perf.accel_best_ms>0?'var(--accent)':'var(--text3)';
     }
 
     // Battery

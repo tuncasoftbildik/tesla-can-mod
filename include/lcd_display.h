@@ -80,6 +80,8 @@ public:
         const char *ps = prec ? "HEATING" : (allow ? "ALLOWED" : "OFF");
         uint16_t pc = prec ? YELLOW : (allow ? GREEN : GRAY);
         drawStatusRow(265, "Precond", ps, pc);
+
+        drawPerfBar(handler);
     }
 
     void showMessage(const char *msg, uint16_t color = 0xFFFF)
@@ -116,6 +118,44 @@ private:
         tft_->setTextSize(1);
         tft_->setCursor(12, 32);
         tft_->print("ESP32-C6 FSD Mod");
+    }
+
+    // Bottom bar (y 278-320): live speed + drive torque + 0-100 km/h result.
+    // This region is otherwise only touched by showMessage() at boot.
+    void drawPerfBar(CarManagerBase *handler)
+    {
+        tft_->fillRect(0, 278, 172, 42, 0x1082);
+
+        float spd = handler ? handler->vehicleSpeedKph : 0;
+        float trq = handler ? (handler->frontTorqueNm + handler->rearTorqueNm) : 0;
+        char buf[32];
+
+        tft_->setTextSize(1);
+        tft_->setTextColor(CYAN);
+        tft_->setCursor(8, 284);
+        snprintf(buf, sizeof(buf), "%.0f km/h", spd);
+        tft_->print(buf);
+
+        tft_->setTextColor(WHITE);
+        snprintf(buf, sizeof(buf), "%.0f Nm", trq);
+        int16_t tw = strlen(buf) * 6;
+        tft_->setCursor(164 - tw, 284);
+        tft_->print(buf);
+
+        // 0-100 line: last result + session best
+        uint32_t last = handler ? handler->accel0to100Ms : 0;
+        uint32_t best = handler ? handler->accel0to100BestMs : 0;
+        tft_->setTextColor(GRAY);
+        tft_->setCursor(8, 303);
+        tft_->print("0-100");
+        tft_->setTextColor(last ? GREEN : GRAY);
+        if (last)
+            snprintf(buf, sizeof(buf), "%.2fs  best %.2fs", last / 1000.0f, best / 1000.0f);
+        else
+            snprintf(buf, sizeof(buf), "--");
+        tw = strlen(buf) * 6;
+        tft_->setCursor(164 - tw, 303);
+        tft_->print(buf);
     }
 
     void drawStatusRow(int y, const char *label, const char *value, uint16_t valueColor)
