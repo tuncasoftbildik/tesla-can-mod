@@ -12,6 +12,12 @@
 // ─── LCD Display ───
 #include "lcd_display.h"
 
+#ifdef TOUCH_ENABLE
+#include "touch_driver.h"
+static TouchDriver touch;
+static unsigned long lastTouchTime = 0;
+#endif
+
 // ─── Web Server ───
 #include "web/web_server.h"
 
@@ -41,16 +47,33 @@ void setup()
 {
     Serial.begin(115200);
     delay(1000);
+#if defined(BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_2)
+    Serial.println("TeslaCAN ESP32-S3 Touch starting...");
+#else
     Serial.println("TeslaCAN ESP32-C6 starting...");
+#endif
 
-    // Init LED
+    // Init LED (if available)
+#if defined(PIN_LED) && (PIN_LED >= 0)
     pinMode(PIN_LED, OUTPUT);
     digitalWrite(PIN_LED, HIGH);
-
+#endif
     // Init LCD
     lcd.init();
     lcd.showMessage("Initializing...", 0xFFE0); // Yellow
     globalLog.add("LCD initialized");
+
+#ifdef TOUCH_ENABLE
+    if (touch.init())
+    {
+        Serial.println("Touch controller CST816D initialized");
+        globalLog.add("Touch screen ready");
+    }
+    else
+    {
+        Serial.println("Touch controller CST816D not detected (optional)");
+    }
+#endif
 
     // Init handler
     handler = std::make_unique<HW4Handler>();
@@ -97,13 +120,61 @@ void loop()
     CanFrame frame;
     while (canDriver->read(frame))
     {
+#if defined(PIN_LED) && (PIN_LED >= 0)
         digitalWrite(PIN_LED, LOW);
+#endif
         handler->frameCount++;
         handler->handleMessage(frame, *canDriver);
     }
+#if defined(PIN_LED) && (PIN_LED >= 0)
     digitalWrite(PIN_LED, HIGH);
+#endif
 
-    // Update LCD display
+#ifdef TOUCH_ENABLE
+    static unsigned long lastTouchPoll = 0;
+    unsigned long nowTouch = millis();
+    if (nowTouch - lastTouchPoll >= 30) // Poll I2C touch at ~33 Hz
+    {
+        lastTouchPoll = nowTouch;
+        uint16_t tx = 0, ty = 0, rawX = 0, rawY = 0;
+        if (touch.getTouch(tx, ty, &rawX, &rawY))
+        {
+            if (nowTouch - lastTouchTime > 350)
+            {
+                lastTouchTime = nowTouch;
+                Serial.printf("[Touch] x=%u, y=%u (raw rx=%u, ry=%u)\n", tx, ty, rawX, rawY);
+
+                // Tappable status rows on portrait layout:
+                if (ty >= 45 && ty < 85) // FSD row
+                {
+                    handler->fsdEnabled = !handler->fsdEnabled;
+                    globalLog.add(handler->fsdEnabled ? "Touch: FSD enabled" : "Touch: FSD disabled");
+                    lcd.showMessage(handler->fsdEnabled ? "FSD: ACTIVE" : "FSD: OFF", handler->fsdEnabled ? 0x07E0 : 0x4208);
+                    lcd.update(handler.get());
+                }
+                else if (ty >= 105 && ty < 145) // Mode row
+                {
+                    handler->speedProfile = (handler->speedProfile + 1) % 5;
+                    const char *pnames[] = {"Chill", "Normal", "Sport", "P3", "P4"};
+                    char msg[32];
+                    snprintf(msg, sizeof(msg), "Mode: %s", pnames[handler->speedProfile]);
+                    globalLog.add(msg);
+                    lcd.showMessage(msg, 0x07FF);
+                    lcd.update(handler.get());
+                }
+                else if (ty >= 250 && ty < 295) // Precond row
+                {
+                    handler->precondRequested = !handler->precondRequested;
+                    if (!handler->precondRequested)
+                        handler->precondActive = false;
+                    globalLog.add(handler->precondRequested ? "Touch: Precond ON" : "Touch: Precond OFF");
+                    lcd.showMessage(handler->precondRequested ? "Precond: START" : "Precond: STOP", handler->precondRequested ? 0xFFE0 : 0x4208);
+                    lcd.update(handler.get());
+                }
+            }
+        }
+    }
+#endif
     lcd.update(handler.get());
 
     // Handle web requests
